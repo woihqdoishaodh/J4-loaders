@@ -266,13 +266,22 @@ RainBlocker.BorderSizePixel        = 0
 RainBlocker.ZIndex                 = 4
 RainBlocker.Parent                 = Gui
 
+local function scaleUDim2(udim2, factor)
+    return UDim2.new(
+        udim2.X.Scale * factor,
+        udim2.X.Offset * factor,
+        udim2.Y.Scale * factor,
+        udim2.Y.Offset * factor
+    )
+end
+
 RunService.Heartbeat:Connect(function()
     local vp    = workspace.CurrentCamera.ViewportSize
     local scale = math.clamp(vp.X / 1280, 0.55, 1.15)
     if CardScale.Scale ~= scale then
         CardScale.Scale = scale
     end
-    RainBlocker.Size     = Card.Size * scale
+    RainBlocker.Size     = scaleUDim2(Card.Size, scale)
     RainBlocker.Position = Card.Position
 end)
 
