@@ -6,7 +6,7 @@ local RunService    = game:GetService("RunService")
 local LocalPlayer   = Players.LocalPlayer
 local PlayerGui     = LocalPlayer:WaitForChild("PlayerGui")
 
-local VALIDATE_URL = "https://j4-loader-production.up.railway.app/validate?key="
+local VALIDATE_URL = "https://j4-loader-production.up.railway.app/validate"
 local MAIN_SCRIPT  = "https://raw.githubusercontent.com/woihqdoishaodh/loader-J4/refs/heads/main/Main.lua"
 local STORAGE_KEY  = "J4rzzHub_Savekey"
 local TTL_MS       = 5 * 60 * 60 * 1000  -- 24 jam dalam ms
@@ -43,21 +43,48 @@ function loadMainScript()
     end
 end
 
--- ── Validate key against server ───────────────────────────────────────────────
--- returns: "valid" | "expired" | "invalid" | "error"
-function validateKeyRemote(key)
-    local ok, res = pcall(function()
-        return game:HttpGet(VALIDATE_URL .. HttpService:UrlEncode(key))
+-- Ganti fungsi getHWID + validateKeyRemote lama dengan ini:
+
+local function getHWID()
+    local ok, id = pcall(function()
+        return game:GetService("RbxAnalyticsService"):GetClientId()
     end)
-    if not ok then return "error" end
+    if ok and id and id ~= "" and id ~= "0" then return id end
+    return tostring(Players.LocalPlayer.UserId)
+end
 
-    local parsed, data = pcall(function() return HttpService:JSONDecode(res) end)
+function validateKeyRemote(key)
+    local hwid = getHWID()
+
+    local ok, res = pcall(function()
+        return HttpService:RequestAsync({
+            Url     = VALIDATE_URL,
+            Method  = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body    = HttpService:JSONEncode({ key = key, hwid = hwid }),
+        })
+    end)
+
+    if not ok or not res then return "error" end
+    if res.StatusCode == 403 then
+        -- expired atau hwid_mismatch
+        local parsed, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
+        if parsed and type(data) == "table" then
+            local reason = (data.reason or ""):lower()
+            if reason == "hwid_mismatch" then return "hwid_mismatch" end
+            if reason:find("expired")     then return "expired"       end
+        end
+        return "invalid"
+    end
+    if res.StatusCode ~= 200 then return "error" end
+
+    local parsed, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
     if not parsed or type(data) ~= "table" then return "error" end
-
     if data.valid then return "valid" end
 
     local reason = (data.reason or ""):lower()
-    if reason:find("expired") then return "expired" end
+    if reason:find("expired")      then return "expired"      end
+    if reason == "hwid_mismatch"   then return "hwid_mismatch" end
     return "invalid"
 end
 
@@ -608,7 +635,6 @@ function closeUI()
     Gui:Destroy()
     Blur:Destroy()
 end
-
 function authenticate()
     if busy then return end
 
@@ -636,7 +662,9 @@ function authenticate()
     end
 
     if status ~= "valid" then
-        local msg = status == "expired" and "Key expired. Retrieve the new key in Discord." or "Invalid key."
+        local msg = status == "expired"       and "Key expired. Retrieve the new key in Discord."
+                 or status == "hwid_mismatch" and "Key ini sudah terdaftar di device lain."
+                 or "Invalid key."
         setStatus(msg, C.red)
         lockBtn(false)
         return
