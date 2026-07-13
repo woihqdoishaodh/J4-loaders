@@ -31,10 +31,20 @@ function clearSavedKey()
 end
 
 -- ── Load main script ──────────────────────────────────────────────────────────
-function loadMainScript()
+-- ── Load main script ──────────────────────────────────────────────────────────
+function loadMainScript(key)
+    local hwid = getHWID()
     local loadOk, loadErr = pcall(function()
-        local src = game:HttpGet(MAIN_SCRIPT)
-        local fn, compErr = loadstring(src)
+        local res = HttpService:RequestAsync({
+            Url     = SCRIPT_URL,
+            Method  = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body    = HttpService:JSONEncode({ key = key, hwid = hwid }),
+        })
+        if res.StatusCode ~= 200 then
+            error("server rejected: " .. res.StatusCode)
+        end
+        local fn, compErr = loadstring(res.Body)
         if not fn then error("compile: " .. tostring(compErr)) end
         fn()
     end)
