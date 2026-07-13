@@ -30,7 +30,15 @@ function clearSavedKey()
     pcall(delfile, STORAGE_KEY .. ".json")
 end
 
--- ── Load main script ──────────────────────────────────────────────────────────
+-- Ganti fungsi getHWID + validateKeyRemote lama dengan ini:
+
+local function getHWID()
+    local ok, id = pcall(function()
+        return game:GetService("RbxAnalyticsService"):GetClientId()
+    end)
+    if ok and id and id ~= "" and id ~= "0" then return id end
+    return tostring(Players.LocalPlayer.UserId)
+end
 -- ── Load main script ──────────────────────────────────────────────────────────
 function loadMainScript(key)
     local hwid = getHWID()
@@ -51,16 +59,6 @@ function loadMainScript(key)
     if not loadOk then
         warn("[J4rzz Hub] Load error: " .. tostring(loadErr))
     end
-end
-
--- Ganti fungsi getHWID + validateKeyRemote lama dengan ini:
-
-local function getHWID()
-    local ok, id = pcall(function()
-        return game:GetService("RbxAnalyticsService"):GetClientId()
-    end)
-    if ok and id and id ~= "" and id ~= "0" then return id end
-    return tostring(Players.LocalPlayer.UserId)
 end
 
 function validateKeyRemote(key)
