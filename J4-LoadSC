@@ -60,49 +60,40 @@ function loadMainScript(key)
         warn("[J4rzz Hub] Load error: " .. tostring(loadErr))
     end
 end
+
 function validateKeyRemote(key)
     local hwid = getHWID()
-    local MAX_RETRY = 3
 
-    for attempt = 1, MAX_RETRY do
-        local ok, res = pcall(function()
-            return HttpService:RequestAsync({
-                Url     = VALIDATE_URL,
-                Method  = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body    = HttpService:JSONEncode({ key = key, hwid = hwid }),
-            })
-        end)
+    local ok, res = pcall(function()
+        return HttpService:RequestAsync({
+            Url     = VALIDATE_URL,
+            Method  = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body    = HttpService:JSONEncode({ key = key, hwid = hwid }),
+        })
+    end)
 
-        if ok and res then
-            if res.StatusCode == 403 then
-                local parsed, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
-                if parsed and type(data) == "table" then
-                    local reason = (data.reason or ""):lower()
-                    if reason == "hwid_mismatch" then return "hwid_mismatch" end
-                    if reason:find("expired")     then return "expired"       end
-                end
-                return "invalid"
-            end
-            if res.StatusCode == 200 then
-                local parsed, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
-                if not parsed or type(data) ~= "table" then return "error" end
-                if data.valid then return "valid" end
-                local reason = (data.reason or ""):lower()
-                if reason:find("expired")    then return "expired"      end
-                if reason == "hwid_mismatch" then return "hwid_mismatch" end
-                return "invalid"
-            end
+    if not ok or not res then return "error" end
+    if res.StatusCode == 403 then
+        -- expired atau hwid_mismatch
+        local parsed, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
+        if parsed and type(data) == "table" then
+            local reason = (data.reason or ""):lower()
+            if reason == "hwid_mismatch" then return "hwid_mismatch" end
+            if reason:find("expired")     then return "expired"       end
         end
-
-        -- Gagal → tunggu bentar sebelum retry
-        if attempt < MAX_RETRY then
-            setStatus("Retrying... (" .. attempt .. "/3)", C.yellow)
-            task.wait(3)
-        end
+        return "invalid"
     end
+    if res.StatusCode ~= 200 then return "error" end
 
-    return "error"
+    local parsed, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
+    if not parsed or type(data) ~= "table" then return "error" end
+    if data.valid then return "valid" end
+
+    local reason = (data.reason or ""):lower()
+    if reason:find("expired")      then return "expired"      end
+    if reason == "hwid_mismatch"   then return "hwid_mismatch" end
+    return "invalid"
 end
 
 -- ── Silent auto-load path ─────────────────────────────────────────────────────
