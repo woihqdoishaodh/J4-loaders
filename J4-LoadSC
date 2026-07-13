@@ -103,7 +103,7 @@ function trySilentLoad()
     -- konfirmasi ke server
     local status = validateKeyRemote(saved.key)
     if status == "valid" then
-        loadMainScript()
+        loadMainScript(saved.key)  -- tambahin saved.key
         return true
     end
 
@@ -681,7 +681,7 @@ function authenticate()
 
     closeUI()
     task.wait(0.1)
-    loadMainScript()
+    loadMainScript(key)  -- tambahin key
 end
 
 Btn.MouseButton1Click:Connect(authenticate)
