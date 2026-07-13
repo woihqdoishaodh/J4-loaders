@@ -7,7 +7,7 @@ local LocalPlayer   = Players.LocalPlayer
 local PlayerGui     = LocalPlayer:WaitForChild("PlayerGui")
 
 local VALIDATE_URL = "https://j4-loader-production.up.railway.app/validate"
-local MAIN_SCRIPT  = "https://raw.githubusercontent.com/woihqdoishaodh/loader-J4/refs/heads/main/Main.lua"
+local SCRIPT_URL = "https://j4-loader-production.up.railway.app/script"
 local STORAGE_KEY  = "J4rzzHub_Savekey"
 local TTL_MS       = 5 * 60 * 60 * 1000  -- 24 jam dalam ms
 
